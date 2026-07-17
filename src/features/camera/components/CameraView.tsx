@@ -10,7 +10,7 @@ import { CameraPermission } from './CameraPermission'
 import { FPSCounter } from './FPSCounter'
 
 // Placeholder until MediaPipe component is built
-function LandmarkOverlayPlaceholder({ videoElement }: { videoElement: HTMLVideoElement | null }) {
+function LandmarkOverlayPlaceholder({ videoElement: _ }: { videoElement: HTMLVideoElement | null }) {
   return null
 }
 

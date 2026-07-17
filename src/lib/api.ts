@@ -101,7 +101,6 @@ async function request<T>(
 
   const response = await fetch(url, {
     method,
-    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     ...options,
     // Ensure our headers aren't overwritten by spread

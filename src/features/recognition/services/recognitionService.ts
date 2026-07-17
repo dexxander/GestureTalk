@@ -1,6 +1,5 @@
 import { ruleBasedClassifier } from './ruleBasedClassifier'
 import { SequenceBuffer } from './sequenceBuffer'
-import type { PredictionResult } from '../types/recognition'
 import { useRecognitionStore } from '@/stores/recognitionStore'
 
 class RecognitionService {
@@ -12,17 +11,17 @@ class RecognitionService {
     this.isProcessing = true
 
     try {
-      const { setIsRecognizing, setRawPrediction, addStableSign } = useRecognitionStore.getState()
+      const { setRecognizing, setPrediction, addToPredictionHistory, appendToSentence } = useRecognitionStore.getState()
 
       if (!results || !results.landmarks || results.landmarks.length === 0) {
-        setIsRecognizing(false)
-        setRawPrediction(null)
+        setRecognizing(false)
+        setPrediction(null, 0)
         this.buffer.clear()
         this.isProcessing = false
         return
       }
 
-      setIsRecognizing(true)
+      setRecognizing(true)
 
       // Get first hand detected
       const landmarks = results.landmarks[0]
@@ -34,12 +33,13 @@ class RecognitionService {
       this.buffer.push(prediction)
       
       // Always update raw prediction for the UI meter
-      setRawPrediction(prediction)
+      setPrediction(prediction.sign, prediction.confidence)
 
       // Get stabilized prediction
       const stablePrediction = this.buffer.getStablePrediction()
       if (stablePrediction) {
-        addStableSign(stablePrediction.sign, stablePrediction.confidence)
+        addToPredictionHistory(stablePrediction)
+        appendToSentence(stablePrediction.sign)
         // Clear buffer after a stable sign is emitted to prevent repeating the same sign instantly
         this.buffer.clear() 
       }

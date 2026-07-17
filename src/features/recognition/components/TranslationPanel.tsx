@@ -4,7 +4,8 @@ import { ConfidenceMeter } from '@/components/ui/ConfidenceMeter'
 
 export function TranslationPanel() {
   const isRecognizing = useRecognitionStore(state => state.isRecognizing)
-  const rawPrediction = useRecognitionStore(state => state.rawPrediction)
+  const currentSign = useRecognitionStore(state => state.currentSign)
+  const currentConfidence = useRecognitionStore(state => state.currentConfidence)
   const currentSentence = useRecognitionStore(state => state.currentSentence)
   const clearSentence = useRecognitionStore(state => state.clearSentence)
 
@@ -70,16 +71,16 @@ export function TranslationPanel() {
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium text-text-muted uppercase tracking-wider">Current Sign</span>
           <AnimatePresence mode="wait">
-            {rawPrediction && rawPrediction.sign !== 'UNKNOWN' ? (
+            {currentSign && currentSign !== 'UNKNOWN' ? (
               <motion.div
-                key={rawPrediction.sign}
+                key={currentSign}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex items-center gap-3"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center font-display font-bold text-xl border border-primary/30 shadow-sm">
-                  {rawPrediction.sign}
+                  {currentSign}
                 </div>
               </motion.div>
             ) : (
@@ -99,7 +100,7 @@ export function TranslationPanel() {
         <div className="flex items-center gap-3">
            <span className="text-xs font-medium text-text-muted">Confidence</span>
            <ConfidenceMeter 
-             value={rawPrediction?.confidence || 0} 
+             value={currentConfidence || 0} 
              size="sm" 
              showPercentage={false}
            />

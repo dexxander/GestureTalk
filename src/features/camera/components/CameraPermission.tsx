@@ -3,11 +3,11 @@ import { Camera } from 'lucide-react'
 import { useCameraStore } from '@/stores/cameraStore'
 
 export function CameraPermission() {
-  const permission = useCameraStore(state => state.permission)
+  const permissionState = useCameraStore(state => state.permissionState)
   const setPermission = useCameraStore(state => state.setPermission)
 
   // Don't render if granted
-  if (permission === 'granted') return null
+  if (permissionState === 'granted') return null
 
   return (
     <motion.div
@@ -21,12 +21,12 @@ export function CameraPermission() {
       
       <h2 className="text-xl font-bold text-text mb-2">Camera Access Required</h2>
       <p className="text-text-secondary text-center max-w-sm mb-8 px-4">
-        {permission === 'denied' 
+        {permissionState === 'denied' 
           ? 'Camera access is currently blocked. Please update your browser settings to allow GestureTalk to see your signs.'
           : 'GestureTalk needs access to your camera to recognize sign language.'}
       </p>
 
-      {permission !== 'denied' && (
+      {permissionState !== 'denied' && (
         <button
           onClick={() => setPermission('prompt')}
           className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-hover active:bg-primary-active transition-colors shadow-elevated"
@@ -35,7 +35,7 @@ export function CameraPermission() {
         </button>
       )}
 
-      {permission === 'denied' && (
+      {permissionState === 'denied' && (
         <div className="p-4 bg-danger/10 border border-danger/20 rounded-xl max-w-xs text-center">
           <p className="text-danger text-sm font-medium">
             Please click the camera icon in your browser's address bar to reset permissions, then refresh the page.

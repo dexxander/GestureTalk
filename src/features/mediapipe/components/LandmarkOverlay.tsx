@@ -39,9 +39,9 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
         ctx.strokeStyle = '#06b6d4' // Accent color
         ctx.lineWidth = 2
         
-        for (const [startIdx, endIdx] of HAND_CONNECTIONS) {
-          const start = landmarks[startIdx]
-          const end = landmarks[endIdx]
+        for (const connection of HAND_CONNECTIONS) {
+          const start = landmarks[connection.start]
+          const end = landmarks[connection.end]
           
           ctx.beginPath()
           ctx.moveTo(start.x * canvas.width, start.y * canvas.height)

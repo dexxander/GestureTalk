@@ -1,4 +1,4 @@
-import { Play, Square, FlipHorizontal, Eye, EyeOff, Maximize2, Video, VideoOff } from 'lucide-react'
+import { Play, Square, FlipHorizontal, Eye, EyeOff, Maximize2, Minimize2, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCameraStore } from '@/stores/cameraStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -16,12 +16,11 @@ export function CameraControls({ onToggleCamera, onToggleFullscreen, isFullscree
   const isActive = useCameraStore(state => state.isActive)
   const { devices, selectedDevice, selectDevice } = useCameraDevices()
   
-  const { mirrorCamera, setMirrorCamera, showLandmarks, setShowLandmarks } = useSettingsStore(
+  const { mirrorCamera, showLandmarks, updateSetting } = useSettingsStore(
     useShallow(state => ({
       mirrorCamera: state.mirrorCamera,
-      setMirrorCamera: state.setMirrorCamera,
       showLandmarks: state.showLandmarks,
-      setShowLandmarks: state.setShowLandmarks
+      updateSetting: state.updateSetting
     }))
   )
 
@@ -71,7 +70,7 @@ export function CameraControls({ onToggleCamera, onToggleFullscreen, isFullscree
       {/* Mirror Toggle */}
       <Tooltip content="Mirror Camera" position="top">
         <button
-          onClick={() => setMirrorCamera(!mirrorCamera)}
+          onClick={() => updateSetting('mirrorCamera', !mirrorCamera)}
           className={cn(
             "w-10 h-10 flex items-center justify-center rounded-xl transition-colors",
             mirrorCamera ? "bg-primary/20 text-primary" : "hover:bg-surface-hover text-text-secondary hover:text-text"
@@ -84,7 +83,7 @@ export function CameraControls({ onToggleCamera, onToggleFullscreen, isFullscree
       {/* Landmarks Toggle */}
       <Tooltip content={showLandmarks ? "Hide Landmarks" : "Show Landmarks"} position="top">
         <button
-          onClick={() => setShowLandmarks(!showLandmarks)}
+          onClick={() => updateSetting('showLandmarks', !showLandmarks)}
           className={cn(
             "w-10 h-10 flex items-center justify-center rounded-xl transition-colors",
             showLandmarks ? "bg-primary/20 text-primary" : "hover:bg-surface-hover text-text-secondary hover:text-text"
@@ -102,7 +101,7 @@ export function CameraControls({ onToggleCamera, onToggleFullscreen, isFullscree
           onClick={onToggleFullscreen}
           className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-surface-hover text-text-secondary hover:text-text transition-colors"
         >
-          <Maximize2 className="w-5 h-5" />
+          {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
         </button>
       </Tooltip>
 

@@ -8,7 +8,7 @@ export function useDetectionLoop(
   isActive: boolean,
   isReady: boolean
 ) {
-  const requestRef = useRef<number>()
+  const requestRef = useRef<number>(0)
   const lastVideoTimeRef = useRef<number>(-1)
   const showLandmarks = useSettingsStore(state => state.showLandmarks)
 
@@ -23,7 +23,7 @@ export function useDetectionLoop(
           lastVideoTimeRef.current = videoElement.currentTime
 
           try {
-            const results = await mediaPipeService.detectFrame(videoElement)
+            const results = await mediaPipeService.detectFrame(videoElement, videoElement.currentTime * 1000)
             
             // Send results to recognition engine
             recognitionService.processFrame(results)

@@ -1,4 +1,4 @@
-import type { PredictionResult } from '../types/recognition'
+import type { Prediction } from '../types/recognition'
 import { SEQUENCE_BUFFER_SIZE, STABILITY_FRAMES } from '@/lib/constants'
 
 /**
@@ -6,7 +6,7 @@ import { SEQUENCE_BUFFER_SIZE, STABILITY_FRAMES } from '@/lib/constants'
  * and determine a stable consensus prediction.
  */
 export class SequenceBuffer {
-  private buffer: PredictionResult[] = []
+  private buffer: Prediction[] = []
   private size: number
   private stabilityThreshold: number
 
@@ -16,7 +16,7 @@ export class SequenceBuffer {
   }
 
   /** Add a new prediction to the buffer */
-  public push(prediction: PredictionResult): void {
+  public push(prediction: Prediction): void {
     this.buffer.push(prediction)
     if (this.buffer.length > this.size) {
       this.buffer.shift() // Remove oldest
@@ -29,7 +29,7 @@ export class SequenceBuffer {
   }
 
   /** Get the most frequent sign in the recent frames (consensus) */
-  public getStablePrediction(): PredictionResult | null {
+  public getStablePrediction(): Prediction | null {
     if (this.buffer.length < this.stabilityThreshold) {
       return null
     }
@@ -61,7 +61,7 @@ export class SequenceBuffer {
     return null
   }
 
-  public getRawLatest(): PredictionResult | null {
+  public getRawLatest(): Prediction | null {
     return this.buffer.length > 0 ? this.buffer[this.buffer.length - 1] : null
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+
 import { CameraView } from '@/features/camera/components/CameraView'
 import { LandmarkOverlay } from '@/features/mediapipe/components/LandmarkOverlay'
 import { TranslationPanel } from '@/features/recognition/components/TranslationPanel'

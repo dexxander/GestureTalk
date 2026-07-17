@@ -1,4 +1,3 @@
-import { APP_NAME, APP_VERSION } from './constants'
 
 /**
  * General utility functions

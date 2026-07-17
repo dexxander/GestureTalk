@@ -15,9 +15,6 @@ import {
 } from '@mediapipe/tasks-vision'
 import type {
   DetectionResult,
-  HandResult,
-  PoseResult,
-  FaceResult,
   MediaPipeLoadState,
 } from '../types/landmarks'
 

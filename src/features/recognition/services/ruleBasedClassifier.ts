@@ -1,12 +1,6 @@
 import type { NormalizedLandmark } from '@/features/mediapipe/types/landmarks'
 import { HAND_LANDMARKS } from '@/features/mediapipe/types/landmarks'
-import type { Prediction, PredictionResult } from '../types/recognition'
-
-interface FingerState {
-  isOpen: boolean
-  isCurled: boolean
-  direction?: 'up' | 'down' | 'left' | 'right' | 'forward'
-}
+import type { Prediction } from '../types/recognition'
 
 /** Calculate 3D distance between two landmarks */
 function distance(a: NormalizedLandmark, b: NormalizedLandmark): number {
@@ -25,28 +19,28 @@ function distance2D(a: NormalizedLandmark, b: NormalizedLandmark): number {
  */
 export class RuleBasedClassifier {
   
-  public classify(landmarks: NormalizedLandmark[], handedness: 'Left' | 'Right'): PredictionResult {
-    const states = this.getFingerStates(landmarks, handedness)
-    const letter = this.matchRules(landmarks, states, handedness)
+  public classify(landmarks: NormalizedLandmark[], _handedness: 'Left' | 'Right'): Prediction {
+    const states = this.getFingerStates(landmarks)
+    const letter = this.matchRules(landmarks, states)
     
     if (letter) {
       return {
         sign: letter,
         confidence: 0.85, // Rule-based is highly confident when rules match
-        source: 'rule-based',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        type: 'letter'
       }
     }
 
     return {
       sign: 'UNKNOWN',
       confidence: 0,
-      source: 'rule-based',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      type: 'gesture'
     }
   }
 
-  private getFingerStates(landmarks: NormalizedLandmark[], handedness: 'Left' | 'Right') {
+  private getFingerStates(landmarks: NormalizedLandmark[]) {
     const wrist = landmarks[HAND_LANDMARKS.WRIST]
 
     // Helper to determine if a finger is open based on distance from wrist
@@ -61,12 +55,6 @@ export class RuleBasedClassifier {
     const thumbIsOpen = () => {
       const thumbTip = landmarks[HAND_LANDMARKS.THUMB_TIP]
       const thumbMcp = landmarks[HAND_LANDMARKS.THUMB_MCP]
-      const indexMcp = landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP]
-      
-      // In 2D, thumb tip should be further outward than index MCP
-      const isOutward = handedness === 'Right' 
-        ? thumbTip.x > indexMcp.x // Right hand: thumb is to the right of index (x is larger if mirrored, wait, MediaPipe x is 0 left, 1 right. If right hand faces camera, thumb is on left side of image -> smaller x. Actually let's use distance)
-        : thumbTip.x < indexMcp.x
 
       const dist = distance(thumbTip, thumbMcp)
       return dist > 0.05 // rough threshold
@@ -81,14 +69,13 @@ export class RuleBasedClassifier {
     }
   }
 
-  private matchRules(landmarks: NormalizedLandmark[], states: ReturnType<typeof this.getFingerStates>, handedness: 'Left' | 'Right'): string | null {
+  private matchRules(landmarks: NormalizedLandmark[], states: ReturnType<typeof this.getFingerStates>): string | null {
     const { thumb, index, middle, ring, pinky } = states
 
     // A: All fingers closed, thumb straight up/out alongside index
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumb.isOpen) {
       // Check if thumb tip is near index PIP (A) vs tucked in (S)
       const thumbTip = landmarks[HAND_LANDMARKS.THUMB_TIP]
-      const indexPip = landmarks[HAND_LANDMARKS.INDEX_FINGER_PIP]
       const indexMcp = landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP]
       
       if (thumbTip.y < indexMcp.y) return 'A'
