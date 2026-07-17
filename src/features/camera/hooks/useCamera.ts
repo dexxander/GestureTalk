@@ -87,15 +87,16 @@ export function useCamera() {
   }, [selectedDeviceId, cameraResolution, setStream, setPermission, setActive, setError, setDevices])
   
   const stop = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(t => t.stop())
+    const state = useCameraStore.getState()
+    if (state.stream) {
+      state.stream.getTracks().forEach(t => t.stop())
     }
-    setStream(null)
-    setActive(false)
+    state.setStream(null)
+    state.setActive(false)
     if (videoRef.current) {
       videoRef.current.srcObject = null
     }
-  }, [stream, setStream, setActive])
+  }, [])
   
   // Cleanup on unmount or when dependencies change such that we want to stop the old stream
   useEffect(() => { 
