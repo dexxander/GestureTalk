@@ -45,12 +45,35 @@ class MLClassifier {
     }
 
     try {
-      // Flatten 21 landmarks into [63] array
-      const flatLandmarks = landmarks.flatMap(l => [l.x, l.y, l.z || 0])
+      // Pre-process landmarks exactly as the Kaggle dataset did
+      const imageWidth = 640
+      const imageHeight = 480
+
+      // 1. Convert to pixel coordinates
+      const pixelCoords = landmarks.map(l => ({
+        x: Math.min(Math.floor(l.x * imageWidth), imageWidth - 1),
+        y: Math.min(Math.floor(l.y * imageHeight), imageHeight - 1)
+      }))
+
+      // 2. Make relative to wrist (index 0)
+      const baseX = pixelCoords[0].x
+      const baseY = pixelCoords[0].y
       
+      const relativeCoords = pixelCoords.map(p => ({
+        x: p.x - baseX,
+        y: p.y - baseY
+      }))
+
+      // 3. Flatten to 1D array of 42 values
+      const flatCoords = relativeCoords.flatMap(p => [p.x, p.y])
+
+      // 4. Normalize by max absolute value
+      const maxVal = Math.max(...flatCoords.map(Math.abs), 1)
+      const normalizedCoords = flatCoords.map(val => val / maxVal)
+
       // Run inference
       return tf.tidy(() => {
-        const inputTensor = tf.tensor2d([flatLandmarks]) // Shape: [1, 63]
+        const inputTensor = tf.tensor2d([normalizedCoords]) // Shape: [1, 42]
         
         // Predict
         const prediction = this.model!.predict(inputTensor) as tf.Tensor
