@@ -1,4 +1,4 @@
-import { ruleBasedClassifier } from './ruleBasedClassifier'
+import { mlClassifier } from './mlClassifier'
 import { SequenceBuffer } from './sequenceBuffer'
 import { useRecognitionStore } from '@/stores/recognitionStore'
 
@@ -27,11 +27,11 @@ class RecognitionService {
 
       // Get first hand detected
       const hand = results.hands[0]
-      // Process via rule-based classifier using 2D normalized screen landmarks for frontal stability
-      const landmarks = hand.landmarks
+      // Process via ML classifier (falls back to rule-based if model missing)
+      const landmarks = hand.worldLandmarks && hand.worldLandmarks.length > 0 ? hand.worldLandmarks : hand.landmarks
       const handedness = hand.handedness || 'Right'
 
-      const prediction = ruleBasedClassifier.classify(landmarks, handedness as 'Left' | 'Right')
+      const prediction = mlClassifier.classify(landmarks, handedness as 'Left' | 'Right')
       
       this.buffer.push(prediction)
       

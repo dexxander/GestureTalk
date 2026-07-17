@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router'
 import { MainLayout } from '@/layouts/MainLayout'
 import { HomePage } from '@/pages/HomePage'
 import { ConversationPage } from '@/pages/ConversationPage'
+import { DataStudioPage } from '@/pages/DataStudioPage'
 import { ROUTES } from '@/lib/constants'
 import './styles/index.css'
 import './styles/animations.css'
@@ -17,6 +18,7 @@ export default function App() {
         <Route path={ROUTES.HOME} element={<HomePage />} />
         {/* Phase 2 routes */}
         <Route path={ROUTES.CONVERSATION} element={<ConversationPage />} />
+        <Route path={ROUTES.DATA_STUDIO} element={<DataStudioPage />} />
         {/* Phase 3 routes */}
         <Route path={ROUTES.DASHBOARD} element={<PlaceholderPage title="Dashboard" />} />
         <Route path={ROUTES.HISTORY} element={<PlaceholderPage title="History" />} />

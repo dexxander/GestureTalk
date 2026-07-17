@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
 export const ROUTES = {
   HOME: '/',
   CONVERSATION: '/conversation',
+  DATA_STUDIO: '/studio',
   DASHBOARD: '/dashboard',
   HISTORY: '/history',
   FAVORITES: '/favorites',
