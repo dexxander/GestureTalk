@@ -7,10 +7,7 @@ function distance(a: NormalizedLandmark, b: NormalizedLandmark): number {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
 }
 
-/** Calculate distance considering only X and Y (screen space) */
-function distance2D(a: NormalizedLandmark, b: NormalizedLandmark): number {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
-}
+
 
 /** 
  * Rule-Based ASL Fingerspelling Classifier.
@@ -42,12 +39,14 @@ export class RuleBasedClassifier {
 
   private getFingerStates(landmarks: NormalizedLandmark[]) {
     const wrist = landmarks[HAND_LANDMARKS.WRIST]
+    const middleMcp = landmarks[HAND_LANDMARKS.MIDDLE_FINGER_MCP]
+    const palmSize = distance(wrist, middleMcp)
 
     // Helper to determine if a finger is open based on distance from wrist
     // A finger is generally open if its tip is further from the wrist than its PIP joint
     const isOpen = (tipIdx: number, pipIdx: number) => {
-      const tipDist = distance2D(landmarks[tipIdx], wrist)
-      const pipDist = distance2D(landmarks[pipIdx], wrist)
+      const tipDist = distance(landmarks[tipIdx], wrist)
+      const pipDist = distance(landmarks[pipIdx], wrist)
       return tipDist > pipDist
     }
 
@@ -57,7 +56,7 @@ export class RuleBasedClassifier {
       const thumbMcp = landmarks[HAND_LANDMARKS.THUMB_MCP]
 
       const dist = distance(thumbTip, thumbMcp)
-      return dist > 0.05 // rough threshold
+      return dist > (palmSize * 0.4) // Scale invariant threshold
     }
 
     return {
@@ -78,6 +77,10 @@ export class RuleBasedClassifier {
     const pinkyTip = landmarks[HAND_LANDMARKS.PINKY_TIP]
     const indexMcp = landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP]
     
+    const wrist = landmarks[HAND_LANDMARKS.WRIST]
+    const middleMcp = landmarks[HAND_LANDMARKS.MIDDLE_FINGER_MCP]
+    const palmSize = distance(wrist, middleMcp)
+    
     // Helper distances
     const thumbIndexDist = distance(thumbTip, indexTip)
     const thumbMiddleDist = distance(thumbTip, middleTip)
@@ -91,7 +94,7 @@ export class RuleBasedClassifier {
     if (index.isOpen && middle.isOpen && ring.isOpen && !pinky.isOpen) return 'W'
 
     // F: Index and thumb touching (circle), others open
-    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && thumbIndexDist < 0.08) return 'F'
+    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && thumbIndexDist < (palmSize * 0.6)) return 'F'
 
     // Y: Thumb and pinky open, others closed
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && thumb.isOpen) return 'Y'
@@ -107,20 +110,20 @@ export class RuleBasedClassifier {
       // If index and middle are crossed, it's R. (index.x and middle.x flipped)
       // If they are apart it's V, if together it's U.
       if (indexTip.y > landmarks[HAND_LANDMARKS.INDEX_FINGER_PIP].y) return 'R' // Rough heuristic for crossed
-      if (indexMiddleDist > 0.05) return 'V'
+      if (indexMiddleDist > (palmSize * 0.4)) return 'V'
       return 'U'
     }
 
     // D: Index open, others closed, thumb touching middle tip
-    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbMiddleDist < 0.1) return 'D'
+    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbMiddleDist < (palmSize * 0.8)) return 'D'
     
     // 1 / Z: Index open, others closed (similar to D but thumb tucked)
     if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen) return 'Z'
 
     // C or O: All fingers curved. O is touching thumb, C is not.
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen) {
-      if (allTipsToThumb < 0.3) return 'O'
-      if (allTipsToThumb > 0.3 && allTipsToThumb < 0.6) return 'C'
+      if (allTipsToThumb < (palmSize * 2.5)) return 'O'
+      if (allTipsToThumb > (palmSize * 2.5) && allTipsToThumb < (palmSize * 4.5)) return 'C'
     }
 
     // A, E, S, M, N, T: All fingers closed.

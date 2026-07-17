@@ -5,6 +5,7 @@ import { useRecognitionStore } from '@/stores/recognitionStore'
 class RecognitionService {
   private buffer = new SequenceBuffer()
   private isProcessing = false
+  private lastEmittedSign: string | null = null
 
   public processFrame(results: any): void {
     if (this.isProcessing) return
@@ -13,10 +14,11 @@ class RecognitionService {
     try {
       const { setRecognizing, setPrediction, addToPredictionHistory, appendToSentence } = useRecognitionStore.getState()
 
-      if (!results || !results.landmarks || results.landmarks.length === 0) {
+      if (!results || !results.hands || results.hands.length === 0) {
         setRecognizing(false)
         setPrediction(null, 0)
         this.buffer.clear()
+        this.lastEmittedSign = null
         this.isProcessing = false
         return
       }
@@ -24,8 +26,9 @@ class RecognitionService {
       setRecognizing(true)
 
       // Get first hand detected
-      const landmarks = results.landmarks[0]
-      const handedness = results.handednesses?.[0]?.[0]?.categoryName || 'Right'
+      const hand = results.hands[0]
+      const landmarks = hand.landmarks
+      const handedness = hand.handedness || 'Right'
 
       // Process via rule-based classifier
       const prediction = ruleBasedClassifier.classify(landmarks, handedness as 'Left' | 'Right')
@@ -37,11 +40,13 @@ class RecognitionService {
 
       // Get stabilized prediction
       const stablePrediction = this.buffer.getStablePrediction()
-      if (stablePrediction) {
+      if (stablePrediction && stablePrediction.sign !== this.lastEmittedSign) {
         addToPredictionHistory(stablePrediction)
         appendToSentence(stablePrediction.sign)
-        // Clear buffer after a stable sign is emitted to prevent repeating the same sign instantly
+        this.lastEmittedSign = stablePrediction.sign
         this.buffer.clear() 
+      } else if (stablePrediction && stablePrediction.sign === 'UNKNOWN') {
+         this.lastEmittedSign = null
       }
 
     } catch (err) {
