@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { HAND_CONNECTIONS } from '../types/landmarks'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useRecognitionStore } from '@/stores/recognitionStore'
 
 interface LandmarkOverlayProps {
   videoElement: HTMLVideoElement | null
@@ -10,6 +11,7 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const showLandmarks = useSettingsStore(state => state.showLandmarks)
   const mirrorCamera = useSettingsStore(state => state.mirrorCamera)
+  const currentSign = useRecognitionStore(state => state.currentSign)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -57,11 +59,45 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
 
         // Draw landmarks
         ctx.fillStyle = '#6366f1' // Primary color
+        let minY = Infinity
+        let minX = Infinity
+        
         landmarks.forEach((landmark: any) => {
+          const px = landmark.x * canvas.width
+          const py = landmark.y * canvas.height
+          if (py < minY) {
+            minY = py
+            minX = px
+          }
           ctx.beginPath()
-          ctx.arc(landmark.x * canvas.width, landmark.y * canvas.height, 3, 0, 2 * Math.PI)
+          ctx.arc(px, py, 3, 0, 2 * Math.PI)
           ctx.fill()
         })
+
+        // Draw predicted sign above hand
+        if (currentSign && currentSign !== 'UNKNOWN') {
+          ctx.save()
+          // Undo mirror for text so it reads correctly
+          if (isMirrored) {
+            ctx.scale(-1, 1)
+            minX = -minX // Flip X coordinate back to un-mirrored space for drawing text
+          }
+          
+          ctx.font = 'bold 32px Inter, sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          
+          // Draw text shadow/stroke for visibility
+          ctx.lineWidth = 4
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)'
+          ctx.strokeText(currentSign, minX, minY - 20)
+          
+          // Draw actual text
+          ctx.fillStyle = '#10b981' // Success color
+          ctx.fillText(currentSign, minX, minY - 20)
+          
+          ctx.restore()
+        }
       })
 
       if (isMirrored) {
@@ -74,7 +110,7 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
     return () => {
       window.removeEventListener('mediapipe-results', handleResults)
     }
-  }, [videoElement, showLandmarks, mirrorCamera])
+  }, [videoElement, showLandmarks, mirrorCamera, currentSign])
 
   return (
     <canvas 

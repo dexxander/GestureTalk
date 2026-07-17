@@ -9,8 +9,8 @@ export function HomePage() {
   const { isReady: isMediaPipeReady, error: mpError } = useMediaPipe()
 
   return (
-    <div className="flex flex-col h-full gap-6">
-      <header>
+    <div className="flex flex-col h-full gap-6 overflow-y-auto pb-4">
+      <header className="shrink-0">
         <h1 className="text-3xl font-display font-bold tracking-tight text-text mb-2">Live Translation</h1>
         <p className="text-text-secondary text-lg">Real-time ASL fingerspelling recognition.</p>
       </header>
@@ -22,10 +22,10 @@ export function HomePage() {
         </div>
       )}
 
-      <div className="flex-1 grid lg:grid-cols-12 gap-6 min-h-0">
+      <div className="flex-1 grid lg:grid-cols-12 gap-6 min-h-[500px] lg:min-h-0">
         
         {/* Left Column - Camera */}
-        <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-0">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col min-h-[300px] lg:min-h-0">
           <div className="flex-1 bg-surface rounded-3xl border border-border/50 shadow-elevated overflow-hidden p-2">
             <CameraView 
               LandmarkOverlay={LandmarkOverlay}
@@ -36,7 +36,7 @@ export function HomePage() {
         </div>
 
         {/* Right Column - Translation Panel */}
-        <div className="lg:col-span-5 xl:col-span-4 flex flex-col min-h-0">
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col min-h-[400px] lg:min-h-0">
           <TranslationPanel />
         </div>
 

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { VideoOff, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,8 +28,24 @@ export function CameraView({ className, LandmarkOverlay = LandmarkOverlayPlaceho
   const mirrorCamera = useSettingsStore(state => state.mirrorCamera)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Initialize detection loop with the actual video ref
-  useDetectionLoop(videoRef.current, isActive, isMediaPipeReady)
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null)
+
+  const handleVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    // Keep the hook's ref in sync
+    if (videoRef) videoRef.current = node
+    // Update state to force re-render and pass to detection loop
+    setVideoElement(node)
+    
+    // If stream already exists (from a previous page), attach it immediately
+    const stream = useCameraStore.getState().stream
+    if (node && stream) {
+      node.srcObject = stream
+      node.play().catch(e => console.error("Error playing video on remount:", e))
+    }
+  }, [videoRef])
+
+  // Initialize detection loop with the actual video element state
+  useDetectionLoop(videoElement, isActive, isMediaPipeReady)
 
   // Start camera on mount if previously active or if we have permission
   useEffect(() => {
@@ -75,7 +91,7 @@ export function CameraView({ className, LandmarkOverlay = LandmarkOverlayPlaceho
     >
       {/* Video Element */}
       <video
-        ref={videoRef}
+        ref={handleVideoRef}
         autoPlay
         playsInline
         muted
@@ -89,7 +105,7 @@ export function CameraView({ className, LandmarkOverlay = LandmarkOverlayPlaceho
       {/* Landmark Overlay */}
       {isActive && !error && (
         <div className="absolute inset-0 z-10 pointer-events-none">
-          <LandmarkOverlay videoElement={videoRef.current} />
+          <LandmarkOverlay videoElement={videoElement} />
         </div>
       )}
 
