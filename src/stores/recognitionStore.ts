@@ -52,6 +52,8 @@ export interface RecognitionState {
   clearPredictionHistory: () => void
   /** Append recognized text to the current sentence. */
   appendToSentence: (text: string) => void
+  /** Manually set the current sentence (for typing mode). */
+  setSentence: (sentence: string) => void
   /** Finalize the current sentence and move it to completedSentences. */
   completeSentence: () => void
   /** Remove the last word from the current sentence. */
@@ -75,6 +77,7 @@ const INITIAL_STATE: Omit<
   | 'addToPredictionHistory'
   | 'clearPredictionHistory'
   | 'appendToSentence'
+  | 'setSentence'
   | 'completeSentence'
   | 'undoLastWord'
   | 'clearSentence'
@@ -127,6 +130,10 @@ export const useRecognitionStore = create<RecognitionState>()((set) => ({
       const separator = state.currentSentence.length > 0 ? ' ' : ''
       return { currentSentence: state.currentSentence + separator + text }
     })
+  },
+
+  setSentence: (sentence) => {
+    set({ currentSentence: sentence })
   },
 
   completeSentence: () => {
