@@ -1,0 +1,126 @@
+/**
+ * GestureTalk — Supplemental Animation Utilities
+ *
+ * Lightweight CSS animations that complement Motion (framer-motion).
+ * These are used for:
+ *  - Page/route transition scaffolding
+ *  - Gesture recognition feedback indicators
+ *  - Loading skeleton states
+ *  - Reduced-motion overrides
+ *
+ * NOTE: Most component animations use Motion's declarative API.
+ * This file covers CSS-only cases where JS animation is unnecessary.
+ */
+
+/* ─── Page Transition Helpers ──────────────────────────────────────────────── */
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@utility animate-page-enter {
+  animation: page-enter 0.35s var(--ease-smooth) forwards;
+}
+
+@utility animate-page-exit {
+  animation: page-exit 0.25s var(--ease-smooth) forwards;
+}
+
+/* ─── Gesture Recognition Feedback ─────────────────────────────────────────── */
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes hand-detected {
+  0% {
+    box-shadow: 0 0 0 0 oklch(0.65 0.25 275 / 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 12px oklch(0.65 0.25 275 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.65 0.25 275 / 0);
+  }
+}
+
+@utility animate-ripple {
+  animation: ripple 0.6s ease-out forwards;
+}
+
+@utility animate-hand-detected {
+  animation: hand-detected 1s ease-out infinite;
+}
+
+/* ─── Skeleton / Placeholder Loading ───────────────────────────────────────── */
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@utility animate-skeleton {
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+/* ─── Staggered Children (use with inline --delay) ─────────────────────────── */
+
+@keyframes stagger-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-stagger {
+  animation: stagger-fade 0.4s var(--ease-smooth) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+
+/* ─── Reduced Motion ───────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
