@@ -9,6 +9,7 @@ interface LandmarkOverlayProps {
 export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const showLandmarks = useSettingsStore(state => state.showLandmarks)
+  const mirrorCamera = useSettingsStore(state => state.mirrorCamera)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -29,7 +30,7 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
       if (!showLandmarks) return
       if (!results || !results.hands || results.hands.length === 0) return
 
-      const isMirrored = videoElement.style.transform.includes('scaleX(-1)')
+      const isMirrored = mirrorCamera
       if (isMirrored) {
         ctx.save()
         ctx.scale(-1, 1)
@@ -73,7 +74,7 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
     return () => {
       window.removeEventListener('mediapipe-results', handleResults)
     }
-  }, [videoElement, showLandmarks])
+  }, [videoElement, showLandmarks, mirrorCamera])
 
   return (
     <canvas 
