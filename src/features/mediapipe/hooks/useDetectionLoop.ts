@@ -23,7 +23,9 @@ export function useDetectionLoop(
           lastVideoTimeRef.current = videoElement.currentTime
 
           try {
-            const results = await mediaPipeService.detectFrame(videoElement, videoElement.currentTime * 1000)
+            // Use performance.now() to ensure strictly monotonically increasing timestamps
+            // across page navigation, since MediaPipe throws if the timestamp goes backwards.
+            const results = await mediaPipeService.detectFrame(videoElement, performance.now())
             
             // Send results to recognition engine
             recognitionService.processFrame(results)

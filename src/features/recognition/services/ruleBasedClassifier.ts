@@ -38,33 +38,24 @@ export class RuleBasedClassifier {
   }
 
   private getFingerStates(landmarks: NormalizedLandmark[]) {
-    const wrist = landmarks[HAND_LANDMARKS.WRIST]
-    const middleMcp = landmarks[HAND_LANDMARKS.MIDDLE_FINGER_MCP]
-    const palmSize = distance(wrist, middleMcp)
-
-    // Helper to determine if a finger is open based on distance from wrist
-    // A finger is generally open if its tip is further from the wrist than its PIP joint
-    const isOpen = (tipIdx: number, pipIdx: number) => {
-      const tipDist = distance(landmarks[tipIdx], wrist)
-      const pipDist = distance(landmarks[pipIdx], wrist)
-      return tipDist > pipDist
+    // In screen coordinates, y=0 is the top. A finger is "open" (pointing up) if its tip is higher (lower Y) than its PIP joint.
+    const isUp = (tipIdx: number, pipIdx: number) => {
+      return landmarks[tipIdx].y < landmarks[pipIdx].y
     }
 
-    // Thumb is special - check relative to index MCP
+    // Thumb is open if it sticks out far from the index finger knuckle horizontally
     const thumbIsOpen = () => {
-      const thumbTip = landmarks[HAND_LANDMARKS.THUMB_TIP]
-      const thumbMcp = landmarks[HAND_LANDMARKS.THUMB_MCP]
-
-      const dist = distance(thumbTip, thumbMcp)
-      return dist > (palmSize * 0.4) // Scale invariant threshold
+      const dx = Math.abs(landmarks[HAND_LANDMARKS.THUMB_TIP].x - landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP].x)
+      const palmWidth = Math.abs(landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP].x - landmarks[HAND_LANDMARKS.PINKY_MCP].x)
+      return dx > palmWidth * 1.2
     }
 
     return {
-      thumb: { isOpen: thumbIsOpen(), isCurled: false },
-      index: { isOpen: isOpen(HAND_LANDMARKS.INDEX_FINGER_TIP, HAND_LANDMARKS.INDEX_FINGER_PIP), isCurled: false },
-      middle: { isOpen: isOpen(HAND_LANDMARKS.MIDDLE_FINGER_TIP, HAND_LANDMARKS.MIDDLE_FINGER_PIP), isCurled: false },
-      ring: { isOpen: isOpen(HAND_LANDMARKS.RING_FINGER_TIP, HAND_LANDMARKS.RING_FINGER_PIP), isCurled: false },
-      pinky: { isOpen: isOpen(HAND_LANDMARKS.PINKY_TIP, HAND_LANDMARKS.PINKY_PIP), isCurled: false }
+      thumb: { isOpen: thumbIsOpen() },
+      index: { isOpen: isUp(HAND_LANDMARKS.INDEX_FINGER_TIP, HAND_LANDMARKS.INDEX_FINGER_PIP) },
+      middle: { isOpen: isUp(HAND_LANDMARKS.MIDDLE_FINGER_TIP, HAND_LANDMARKS.MIDDLE_FINGER_PIP) },
+      ring: { isOpen: isUp(HAND_LANDMARKS.RING_FINGER_TIP, HAND_LANDMARKS.RING_FINGER_PIP) },
+      pinky: { isOpen: isUp(HAND_LANDMARKS.PINKY_TIP, HAND_LANDMARKS.PINKY_PIP) }
     }
   }
 
@@ -73,63 +64,53 @@ export class RuleBasedClassifier {
     const thumbTip = landmarks[HAND_LANDMARKS.THUMB_TIP]
     const indexTip = landmarks[HAND_LANDMARKS.INDEX_FINGER_TIP]
     const middleTip = landmarks[HAND_LANDMARKS.MIDDLE_FINGER_TIP]
-    const ringTip = landmarks[HAND_LANDMARKS.RING_FINGER_TIP]
-    const pinkyTip = landmarks[HAND_LANDMARKS.PINKY_TIP]
     const indexMcp = landmarks[HAND_LANDMARKS.INDEX_FINGER_MCP]
-    
-    const wrist = landmarks[HAND_LANDMARKS.WRIST]
-    const middleMcp = landmarks[HAND_LANDMARKS.MIDDLE_FINGER_MCP]
-    const palmSize = distance(wrist, middleMcp)
-    
-    // Helper distances
-    const thumbIndexDist = distance(thumbTip, indexTip)
-    const thumbMiddleDist = distance(thumbTip, middleTip)
-    const indexMiddleDist = distance(indexTip, middleTip)
-    const allTipsToThumb = distance(indexTip, thumbTip) + distance(middleTip, thumbTip) + distance(ringTip, thumbTip) + distance(pinkyTip, thumbTip)
 
-    // B: 4 open, thumb closed
+    const isTouching = (a: NormalizedLandmark, b: NormalizedLandmark) => {
+      return distance(a, b) < 0.05 // 5% of screen
+    }
+
+    // A: All fingers closed, thumb pointing up alongside index
+    if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbTip.y < indexMcp.y && thumbTip.x > landmarks[HAND_LANDMARKS.MIDDLE_FINGER_MCP].x) return 'A'
+
+    // B: 4 fingers open, thumb closed (tucked in front of palm)
     if (index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && !thumb.isOpen) return 'B'
 
-    // W: 3 open (index, middle, ring), pinky closed, thumb closed
-    if (index.isOpen && middle.isOpen && ring.isOpen && !pinky.isOpen && !thumb.isOpen) return 'W'
+    // C: Curved hand (tips are below PIPs but not a tight fist, so isOpen is false, but X distances create a C shape - skip for now, C is hard to distinguish from O without depth)
+    
+    // D: Index open, others closed, thumb touching middle tip
+    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && isTouching(thumbTip, middleTip)) return 'D'
 
-    // F: 3 open (middle, ring, pinky), index closed, thumb closed/touching
-    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && thumbIndexDist < (palmSize * 0.8)) return 'F'
+    // E: All fingers closed tightly, thumb tucked under
+    if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbTip.y > indexMcp.y && !thumb.isOpen) return 'E'
 
-    // Y: 2 open (thumb, pinky), others closed
-    if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && thumb.isOpen) return 'Y'
+    // F: 3 fingers open (middle, ring, pinky), index and thumb touching (circle)
+    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && isTouching(thumbTip, indexTip)) return 'F'
 
-    // I: 1 open (pinky), others closed, thumb closed
+    // I: Only pinky open
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && !thumb.isOpen) return 'I'
 
-    // L: 2 open (thumb, index), others closed
+    // K: Index and middle open (V shape), thumb resting on middle PIP. Hard to distinguish from V. 
+    
+    // L: Index and thumb open (90 deg), others closed
     if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumb.isOpen) return 'L'
 
-    // U / V / R: 2 open (index, middle), others closed, thumb closed
+    // U / V / R: Index and middle open, others closed
     if (index.isOpen && middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen) {
-      if (indexTip.y > landmarks[HAND_LANDMARKS.INDEX_FINGER_PIP].y) return 'R' 
-      if (indexMiddleDist > (palmSize * 0.4)) return 'V'
-      return 'U'
+      if (indexTip.x > middleTip.x) return 'R' // Crossed fingers
+      const gap = Math.abs(indexTip.x - middleTip.x)
+      if (gap > 0.05) return 'V' // Apart
+      return 'U' // Together
     }
 
-    // D: 1 open (index), others closed, thumb touching middle tip
-    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbMiddleDist < (palmSize * 0.8)) return 'D'
-    
-    // Z / 1: 1 open (index), others closed, thumb closed (not touching middle tip)
-    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen && thumbMiddleDist >= (palmSize * 0.8)) return 'Z'
+    // W: Index, middle, ring open, pinky closed, thumb touching pinky
+    if (index.isOpen && middle.isOpen && ring.isOpen && !pinky.isOpen && !thumb.isOpen) return 'W'
 
-    // C or O: 0 open, curved. Check distance of all tips to thumb.
-    if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen) {
-      if (allTipsToThumb < (palmSize * 1.5)) return 'O'
-      if (allTipsToThumb > (palmSize * 1.5) && allTipsToThumb < (palmSize * 3.5)) return 'C'
-    }
+    // X: Index hooked (tip below PIP but above MCP), others closed.
+    if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && indexTip.y < indexMcp.y && !thumb.isOpen) return 'X'
 
-    // A, E, S, M, N, T: 0 open, tight fist.
-    if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen) {
-      if (thumb.isOpen && thumbTip.y < indexMcp.y) return 'A'
-      if (thumbTip.x > landmarks[HAND_LANDMARKS.MIDDLE_FINGER_PIP].x) return 'S'
-      if (!thumb.isOpen && thumbTip.y > indexMcp.y) return 'E'
-    }
+    // Y: Thumb and pinky open, others closed
+    if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && thumb.isOpen) return 'Y'
 
     return null
   }

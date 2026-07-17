@@ -27,10 +27,10 @@ class RecognitionService {
 
       // Get first hand detected
       const hand = results.hands[0]
+      // Process via rule-based classifier using 2D normalized screen landmarks for frontal stability
       const landmarks = hand.landmarks
       const handedness = hand.handedness || 'Right'
 
-      // Process via rule-based classifier
       const prediction = ruleBasedClassifier.classify(landmarks, handedness as 'Left' | 'Right')
       
       this.buffer.push(prediction)
