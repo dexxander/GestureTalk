@@ -87,53 +87,47 @@ export class RuleBasedClassifier {
     const indexMiddleDist = distance(indexTip, middleTip)
     const allTipsToThumb = distance(indexTip, thumbTip) + distance(middleTip, thumbTip) + distance(ringTip, thumbTip) + distance(pinkyTip, thumbTip)
 
-    // B: All fingers open, thumb closed/tucked
+    // B: 4 open, thumb closed
     if (index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && !thumb.isOpen) return 'B'
 
-    // W: Index, middle, ring open, pinky closed
-    if (index.isOpen && middle.isOpen && ring.isOpen && !pinky.isOpen) return 'W'
+    // W: 3 open (index, middle, ring), pinky closed, thumb closed
+    if (index.isOpen && middle.isOpen && ring.isOpen && !pinky.isOpen && !thumb.isOpen) return 'W'
 
-    // F: Index and thumb touching (circle), others open
-    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && thumbIndexDist < (palmSize * 0.6)) return 'F'
+    // F: 3 open (middle, ring, pinky), index closed, thumb closed/touching
+    if (!index.isOpen && middle.isOpen && ring.isOpen && pinky.isOpen && thumbIndexDist < (palmSize * 0.8)) return 'F'
 
-    // Y: Thumb and pinky open, others closed
+    // Y: 2 open (thumb, pinky), others closed
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && thumb.isOpen) return 'Y'
 
-    // I: Only pinky open
+    // I: 1 open (pinky), others closed, thumb closed
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && pinky.isOpen && !thumb.isOpen) return 'I'
 
-    // L: Index and thumb open (90 deg), others closed
+    // L: 2 open (thumb, index), others closed
     if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumb.isOpen) return 'L'
 
-    // U or V or R: Index and middle open, others closed
-    if (index.isOpen && middle.isOpen && !ring.isOpen && !pinky.isOpen) {
-      // If index and middle are crossed, it's R. (index.x and middle.x flipped)
-      // If they are apart it's V, if together it's U.
-      if (indexTip.y > landmarks[HAND_LANDMARKS.INDEX_FINGER_PIP].y) return 'R' // Rough heuristic for crossed
+    // U / V / R: 2 open (index, middle), others closed, thumb closed
+    if (index.isOpen && middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen) {
+      if (indexTip.y > landmarks[HAND_LANDMARKS.INDEX_FINGER_PIP].y) return 'R' 
       if (indexMiddleDist > (palmSize * 0.4)) return 'V'
       return 'U'
     }
 
-    // D: Index open, others closed, thumb touching middle tip
+    // D: 1 open (index), others closed, thumb touching middle tip
     if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && thumbMiddleDist < (palmSize * 0.8)) return 'D'
     
-    // 1 / Z: Index open, others closed (similar to D but thumb tucked)
-    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen) return 'Z'
+    // Z / 1: 1 open (index), others closed, thumb closed (not touching middle tip)
+    if (index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen && !thumb.isOpen && thumbMiddleDist >= (palmSize * 0.8)) return 'Z'
 
-    // C or O: All fingers curved. O is touching thumb, C is not.
+    // C or O: 0 open, curved. Check distance of all tips to thumb.
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen) {
-      if (allTipsToThumb < (palmSize * 2.5)) return 'O'
-      if (allTipsToThumb > (palmSize * 2.5) && allTipsToThumb < (palmSize * 4.5)) return 'C'
+      if (allTipsToThumb < (palmSize * 1.5)) return 'O'
+      if (allTipsToThumb > (palmSize * 1.5) && allTipsToThumb < (palmSize * 3.5)) return 'C'
     }
 
-    // A, E, S, M, N, T: All fingers closed.
+    // A, E, S, M, N, T: 0 open, tight fist.
     if (!index.isOpen && !middle.isOpen && !ring.isOpen && !pinky.isOpen) {
       if (thumb.isOpen && thumbTip.y < indexMcp.y) return 'A'
-      
-      // S: Thumb crossed over middle/ring
       if (thumbTip.x > landmarks[HAND_LANDMARKS.MIDDLE_FINGER_PIP].x) return 'S'
-      
-      // E: Thumb tucked under curled fingers
       if (!thumb.isOpen && thumbTip.y > indexMcp.y) return 'E'
     }
 
