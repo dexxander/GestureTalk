@@ -3,18 +3,10 @@ import { CameraView } from '@/features/camera/components/CameraView'
 import { LandmarkOverlay } from '@/features/mediapipe/components/LandmarkOverlay'
 import { TranslationPanel } from '@/features/recognition/components/TranslationPanel'
 import { useMediaPipe } from '@/features/mediapipe/hooks/useMediaPipe'
-import { useDetectionLoop } from '@/features/mediapipe/hooks/useDetectionLoop'
-import { useCamera } from '@/features/camera/hooks/useCamera'
-import { useCameraStore } from '@/stores/cameraStore'
 import { AlertCircle } from 'lucide-react'
 
 export function HomePage() {
   const { isReady: isMediaPipeReady, error: mpError } = useMediaPipe()
-  const isActive = useCameraStore(state => state.isActive)
-  const { videoRef } = useCamera() // Just to pass the ref to detection loop
-
-  // Initialize detection loop
-  useDetectionLoop(videoRef.current, isActive, isMediaPipeReady)
 
   return (
     <div className="flex flex-col h-full gap-6">
@@ -37,6 +29,7 @@ export function HomePage() {
           <div className="flex-1 bg-surface rounded-3xl border border-border/50 shadow-elevated overflow-hidden p-2">
             <CameraView 
               LandmarkOverlay={LandmarkOverlay}
+              isMediaPipeReady={isMediaPipeReady}
               className="h-full w-full object-cover rounded-2xl" 
             />
           </div>

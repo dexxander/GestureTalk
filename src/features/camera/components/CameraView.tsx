@@ -8,6 +8,7 @@ import { useCamera } from '../hooks/useCamera'
 import { CameraControls } from './CameraControls'
 import { CameraPermission } from './CameraPermission'
 import { FPSCounter } from './FPSCounter'
+import { useDetectionLoop } from '@/features/mediapipe/hooks/useDetectionLoop'
 
 // Placeholder until MediaPipe component is built
 function LandmarkOverlayPlaceholder({ videoElement: _ }: { videoElement: HTMLVideoElement | null }) {
@@ -17,14 +18,18 @@ function LandmarkOverlayPlaceholder({ videoElement: _ }: { videoElement: HTMLVid
 interface CameraViewProps {
   className?: string
   LandmarkOverlay?: React.ComponentType<{ videoElement: HTMLVideoElement | null }>
+  isMediaPipeReady?: boolean
 }
 
-export function CameraView({ className, LandmarkOverlay = LandmarkOverlayPlaceholder }: CameraViewProps) {
+export function CameraView({ className, LandmarkOverlay = LandmarkOverlayPlaceholder, isMediaPipeReady = false }: CameraViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { videoRef, isActive, start, stop } = useCamera()
   const error = useCameraStore(state => state.error)
   const mirrorCamera = useSettingsStore(state => state.mirrorCamera)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // Initialize detection loop with the actual video ref
+  useDetectionLoop(videoRef.current, isActive, isMediaPipeReady)
 
   // Start camera on mount if previously active or if we have permission
   useEffect(() => {

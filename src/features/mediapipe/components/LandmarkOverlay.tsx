@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { HAND_CONNECTIONS } from '../types/landmarks'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 interface LandmarkOverlayProps {
   videoElement: HTMLVideoElement | null
@@ -7,6 +8,7 @@ interface LandmarkOverlayProps {
 
 export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const showLandmarks = useSettingsStore(state => state.showLandmarks)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -24,7 +26,8 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
       
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      if (!results || !results.landmarks || results.landmarks.length === 0) return
+      if (!showLandmarks) return
+      if (!results || !results.hands || results.hands.length === 0) return
 
       const isMirrored = videoElement.style.transform.includes('scaleX(-1)')
       if (isMirrored) {
@@ -34,7 +37,9 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
       }
 
       // Draw each hand
-      results.landmarks.forEach((landmarks: any) => {
+      results.hands.forEach((hand: any) => {
+        const landmarks = hand.landmarks
+        
         // Draw connections
         ctx.strokeStyle = '#06b6d4' // Accent color
         ctx.lineWidth = 2
@@ -68,7 +73,7 @@ export function LandmarkOverlay({ videoElement }: LandmarkOverlayProps) {
     return () => {
       window.removeEventListener('mediapipe-results', handleResults)
     }
-  }, [videoElement])
+  }, [videoElement, showLandmarks])
 
   return (
     <canvas 
