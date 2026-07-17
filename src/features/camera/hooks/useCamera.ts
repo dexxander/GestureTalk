@@ -13,8 +13,7 @@ export function useCamera() {
   const videoRef = useRef<HTMLVideoElement>(null)
   
   const { 
-    isActive, 
-    stream, 
+    isActive,
     setActive, 
     setStream, 
     setError, 
@@ -24,7 +23,6 @@ export function useCamera() {
   } = useCameraStore(
     useShallow(state => ({
       isActive: state.isActive,
-      stream: state.stream,
       setActive: state.setActive,
       setStream: state.setStream,
       setError: state.setError,
