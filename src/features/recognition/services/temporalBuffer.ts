@@ -3,7 +3,7 @@ export class TemporalBuffer {
   private readonly maxFrames: number
   private readonly featureDim: number
 
-  constructor(maxFrames: number = 30, featureDim: number = 153) {
+  constructor(maxFrames: number = 30, featureDim: number = 1629) {
     this.maxFrames = maxFrames
     this.featureDim = featureDim
   }

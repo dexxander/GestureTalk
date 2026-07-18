@@ -1,89 +1,91 @@
-import type { DetectionResult, NormalizedLandmark } from '@/features/mediapipe/types/landmarks'
-import { RELEVANT_POSE_INDICES } from '@/features/mediapipe/types/landmarks'
+import type { DetectionResult } from '@/features/mediapipe/types/landmarks'
 
-export const FEATURE_DIM = 63 + 63 + 27 // Left Hand (63) + Right Hand (63) + Pose (27) = 153
+class LandmarkNormalizer {
+  // Output shape per frame: 543 landmarks * 3 (x,y,z) = 1629 floats
+  // Order: Face (468), Left Hand (21), Pose (33), Right Hand (21)
+  
+  public normalize(results: DetectionResult): Float32Array {
+    const features = new Float32Array(543 * 3)
+    features.fill(NaN) // Kaggle models expect NaN for missing landmarks
 
-export class LandmarkNormalizer {
-  /**
-   * Converts a DetectionResult into a flat Float32Array of length 153.
-   * Format: [LeftHand(63), RightHand(63), Pose(27)]
-   * Missing features are zero-padded.
-   */
-  public normalize(result: DetectionResult): Float32Array {
-    const features = new Float32Array(FEATURE_DIM)
-    
-    // 1. Process Hands
-    let leftHand: NormalizedLandmark[] | null = null
-    let rightHand: NormalizedLandmark[] | null = null
+    let offset = 0
 
-    for (const hand of result.hands) {
-      if (hand.handedness === 'Left' && !leftHand) {
-        leftHand = hand.landmarks
-      } else if (hand.handedness === 'Right' && !rightHand) {
-        rightHand = hand.landmarks
-      }
-    }
-
-    if (leftHand) {
-      const normalized = this.normalizePoints(leftHand, 0)
-      features.set(normalized, 0)
-    }
-
-    if (rightHand) {
-      const normalized = this.normalizePoints(rightHand, 0)
-      features.set(normalized, 63)
-    }
-
-    // 2. Process Pose
-    if (result.pose && result.pose.landmarks.length > 0) {
-      const poseLandmarks = RELEVANT_POSE_INDICES.map(i => result.pose!.landmarks[i])
-      
-      // Use midpoint of shoulders as base for pose (indices 11 and 12 in full pose, but they are index 1 and 2 in our filtered array)
-      const leftShoulder = poseLandmarks[1]
-      const rightShoulder = poseLandmarks[2]
-      
-      let basePoint = poseLandmarks[0] // Fallback to nose
-      if (leftShoulder && rightShoulder) {
-        basePoint = {
-          x: (leftShoulder.x + rightShoulder.x) / 2,
-          y: (leftShoulder.y + rightShoulder.y) / 2,
-          z: (leftShoulder.z + rightShoulder.z) / 2
+    // 1. Face (468)
+    if (results.face && results.face.landmarks) {
+      for (let i = 0; i < 468; i++) {
+        const lm = results.face.landmarks[i]
+        if (lm) {
+          features[offset++] = lm.x
+          features[offset++] = lm.y
+          features[offset++] = lm.z || 0
+        } else {
+          offset += 3
         }
       }
+    } else {
+      offset += 468 * 3
+    }
 
-      const normalized = this.normalizePoints(poseLandmarks, null, basePoint)
-      features.set(normalized, 126)
+    // 2. Left Hand (21)
+    let leftHand = null
+    let rightHand = null
+    
+    if (results.hands) {
+       for (let i = 0; i < results.hands.length; i++) {
+          const hType = results.hands[i].handedness
+          if (hType === 'Left') leftHand = results.hands[i]
+          if (hType === 'Right') rightHand = results.hands[i]
+       }
+    }
+
+    if (leftHand && leftHand.landmarks) {
+      for (let i = 0; i < 21; i++) {
+        const lm = leftHand.landmarks[i]
+        if (lm) {
+          features[offset++] = lm.x
+          features[offset++] = lm.y
+          features[offset++] = lm.z || 0
+        } else {
+          offset += 3
+        }
+      }
+    } else {
+      offset += 21 * 3
+    }
+
+    // 3. Pose (33)
+    if (results.pose && results.pose.landmarks) {
+      for (let i = 0; i < 33; i++) {
+        const lm = results.pose.landmarks[i]
+        if (lm) {
+          features[offset++] = lm.x
+          features[offset++] = lm.y
+          features[offset++] = lm.z || 0
+        } else {
+          offset += 3
+        }
+      }
+    } else {
+      offset += 33 * 3
+    }
+
+    // 4. Right Hand (21)
+    if (rightHand && rightHand.landmarks) {
+      for (let i = 0; i < 21; i++) {
+        const lm = rightHand.landmarks[i]
+        if (lm) {
+          features[offset++] = lm.x
+          features[offset++] = lm.y
+          features[offset++] = lm.z || 0
+        } else {
+          offset += 3
+        }
+      }
+    } else {
+      offset += 21 * 3
     }
 
     return features
-  }
-
-  /**
-   * Normalizes a set of points to be translation and scale invariant.
-   */
-  private normalizePoints(
-    points: NormalizedLandmark[], 
-    baseIndex: number | null, 
-    customBase?: NormalizedLandmark
-  ): number[] {
-    if (points.length === 0) return []
-
-    // 1. Translation: make coordinates relative to the base point
-    const base = customBase || (baseIndex !== null ? points[baseIndex] : points[0])
-    
-    const relativeCoords = points.map(p => ({
-      x: p.x - base.x,
-      y: p.y - base.y,
-      z: p.z - base.z
-    }))
-
-    // 2. Flatten to 1D array
-    const flat = relativeCoords.flatMap(p => [p.x, p.y, p.z])
-
-    // 3. Scale: normalize by max absolute value to be distance-independent
-    const maxVal = Math.max(...flat.map(Math.abs), 1e-6) // avoid div by zero
-    
-    return flat.map(val => val / maxVal)
   }
 }
 

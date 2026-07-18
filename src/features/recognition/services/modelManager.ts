@@ -32,8 +32,8 @@ export class ModelManager {
       })
       
       // Warm up the model
-      const dummyInput = new Float32Array(1 * 30 * 153)
-      const tensor = new ort.Tensor('float32', dummyInput, [1, 30, 153])
+      const dummyInput = new Float32Array(30 * 543 * 3)
+      const tensor = new ort.Tensor('float32', dummyInput, [30, 543, 3])
       const feeds: Record<string, ort.Tensor> = {}
       feeds[this.session.inputNames[0]] = tensor
       await this.session.run(feeds)
@@ -52,14 +52,14 @@ export class ModelManager {
 
   /**
    * Run inference on a 30-frame sequence.
-   * Input should be a Float32Array of length 30 * 153.
+   * Input should be a Float32Array of length 30 * 543 * 3.
    */
   public async predict(sequence: Float32Array): Promise<Prediction | null> {
     if (!this.isLoaded || !this.session) return null
 
     try {
-      // Shape: batch_size=1, sequence_length=30, features=153
-      const tensor = new ort.Tensor('float32', sequence, [1, 30, 153])
+      // Kaggle 1st place model shape: [Time, 543, 3]
+      const tensor = new ort.Tensor('float32', sequence, [30, 543, 3])
       const feeds: Record<string, ort.Tensor> = {}
       feeds[this.session.inputNames[0]] = tensor
 
@@ -92,7 +92,7 @@ export class ModelManager {
         sign,
         confidence,
         timestamp: Date.now(),
-        type: 'letter' // Or 'word', depending on what was trained
+        type: 'word' // This model predicts 250 isolated ASL words
       }
     } catch (err) {
       console.error('[ModelManager] Inference error:', err)
